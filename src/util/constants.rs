@@ -1,0 +1,2 @@
+
+pub const PAR_HASH_DEFAULT_ERROR_CODE: i32 = 1;
