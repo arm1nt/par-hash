@@ -1,15 +1,17 @@
 use std::cmp::min;
 use std::fs::{DirEntry, File, Metadata};
 use std::path::PathBuf;
-use std::{fs, thread};
-use std::io::{BufReader, Error, Read, Seek, SeekFrom};
+use std::fs;
+use std::io::{BufReader, Read, Seek, SeekFrom};
 use std::sync::Arc;
 use std::sync::mpsc::Sender;
 use crate::models::{HashFunctionType, HashingConfig, InternalStateUpdate};
 use rayon::prelude::*;
 use crate::hasher::{Hasher, HasherFactory};
 use crate::merkle_tree::MerkleTree;
+use crate::models::TargetType::{DIRECTORY, FILE};
 use crate::util::error_exit;
+use crate::util::fs::{get_dir_entry, get_file, get_metadata, is_supported_filetype};
 
 pub struct HashComputer {
     config: HashingConfig,
@@ -68,6 +70,11 @@ impl HashComputer {
         let mut tree: MerkleTree = MerkleTree::new(&self.hash_algorithm);
         tree.initialize_from_vector(&dir_entry_hashes);
 
+        self.send_internal_state_update(InternalStateUpdate {
+            target_type: DIRECTORY,
+            processed_bytes: None
+        });
+
         tree.get_root_hash()
     }
 
@@ -79,11 +86,18 @@ impl HashComputer {
 
         let file_metadata = get_metadata(&path);
 
-        if file_metadata.len() >= self.config.split_threshold.unwrap() {
+        let res = if file_metadata.len() >= self.config.split_threshold.unwrap() {
             self.compute_chunked_file_hash(path)
         } else {
             self.compute_simple_file_hash(path)
-        }
+        };
+
+        self.send_internal_state_update(InternalStateUpdate {
+            target_type: FILE,
+            processed_bytes: Some(file_metadata.len())
+        });
+
+        res
     }
 
     fn compute_simple_file_hash(&self, path: PathBuf) -> Vec<u8> {
@@ -122,15 +136,9 @@ impl HashComputer {
             chunk_ranges.push((i, end));
         }
 
-        // New local thread-pool for concurrently computing the chunk hashes
-        let pool = rayon::ThreadPoolBuilder::default().num_threads(100).build().unwrap();
-
-        let hashes: Vec<Vec<u8>> = pool.install(|| {
-            self.process_chunks(&path, chunk_ranges)
-        });
-
+        let chunk_hashes: Vec<Vec<u8>> = self.process_chunks(&path, chunk_ranges);
         let mut tree: MerkleTree = MerkleTree::new(&self.hash_algorithm);
-        tree.initialize_from_vector(&hashes);
+        tree.initialize_from_vector(&chunk_hashes);
 
         tree.get_root_hash()
     }
@@ -146,7 +154,6 @@ impl HashComputer {
 
     fn compute_file_chunk_hash(&self, path: &PathBuf, range: &(u64, u64)) -> Vec<u8> {
         let mut chunk = read_chunk(path, range.0, range.1);
-
         HasherFactory::get_instance(&self.hash_algorithm).compute_hash(&mut chunk)
     }
 
@@ -171,6 +178,15 @@ impl HashComputer {
         mb_to_bytes(256) as usize
     }
 
+    fn send_internal_state_update(&self, update: InternalStateUpdate) {
+        let tx: Option<Sender<InternalStateUpdate>> = self.progress_tx.clone();
+
+        match tx {
+            Some(tx) => tx.send(update).unwrap_or_else(|_e| {}),
+            None => {}
+        }
+    }
+
 }
 
 fn read_chunk(path: &PathBuf, start: u64, end: u64) -> Vec<u8> {
@@ -188,31 +204,6 @@ fn read_chunk(path: &PathBuf, start: u64, end: u64) -> Vec<u8> {
     buffer.truncate(bytes_read);
 
     buffer
-}
-
-fn get_file(path: &PathBuf) -> File {
-    File::open(path).unwrap_or_else(|e| {
-        error_exit(Some(format!("Unable to open file at path '{:?}': {e:?}", path)));
-    })
-}
-
-fn get_dir_entry(path: &PathBuf, entry_res: Result<DirEntry, Error>) -> DirEntry {
-    match entry_res {
-        Ok(dir_entry) => dir_entry,
-        Err(e) => {
-            error_exit(Some(format!("Unable to unwrap entry in directory '{:?}': {e:?}", path)));
-        }
-    }
-}
-
-fn get_metadata(path: &PathBuf) -> Metadata {
-    path.metadata().unwrap_or_else(|e| {
-        error_exit(Some(format!("Unable to get metadata for path '{:?}': {e:?}", path)));
-    })
-}
-
-fn is_supported_filetype(path: &PathBuf) -> bool {
-    path.is_dir() || path.is_file()
 }
 
 fn mb_to_bytes(mb: u64) -> u64 {
