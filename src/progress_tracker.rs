@@ -6,6 +6,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::Receiver;
 use std::time::Duration;
 use crate::models::{InternalState, InternalStateUpdate, TargetType};
+use crate::util::constants::{CLEAR_TERMINAL_LINE, MOVE_TO_TERMINAL_LINE_START, MOVE_UP_TERMINAL_LINE};
 use crate::util::error_exit;
 use crate::util::fs::{get_dir_entry, get_metadata, is_supported_filetype};
 
@@ -62,15 +63,41 @@ impl ProgressTracker {
 }
 
 fn progress_formatter(running: Arc<AtomicBool>, state: Arc<Mutex<InternalState>>) {
+    println!("\n");
 
     while running.load(Ordering::Relaxed) {
-        print!("\x1B[2K\r:{:?}", state.lock().unwrap());
+        let curr_state = state.lock().unwrap();
+        clear_progress_lines(3);
+
+        println!("{}", get_progress_metric("Processed files", curr_state.nr_of_processed_files, curr_state.nr_of_files));
+        println!("{}", get_progress_metric("Processed subdirs", curr_state.nr_of_processed_sub_dirs, curr_state.nr_of_sub_dirs));
+        println!("{}", get_progress_metric("Processed bytes", curr_state.processed_size, curr_state.total_size_to_process));
         std::io::stdout().flush().unwrap();
+
         thread::sleep(Duration::from_millis(300));
     }
+
     std::io::stdout().flush().unwrap();
     thread::sleep(Duration::from_millis(300));
-    print!("\x1B[2K\rDone!\n");
+    clear_progress_lines(3);
+}
+
+fn get_progress_metric(info: &str, processed: u64, total: u64) -> String {
+    format!("{info}:\t{processed}/{total} ({:.4}%)", ratio(processed, total).unwrap_or_else(|| 0.0) * 100.0)
+}
+
+fn clear_progress_lines(line_count: u64) {
+    for _i in 0..line_count {
+        print!("{}{}{}", CLEAR_TERMINAL_LINE, MOVE_TO_TERMINAL_LINE_START, MOVE_UP_TERMINAL_LINE);
+    }
+}
+
+fn ratio(a: u64, b: u64) -> Option<f64> {
+    if b == 0 {
+        None
+    } else {
+        Some(a as f64 / b as f64)
+    }
 }
 
 fn init_internal_state(path: &PathBuf, state: &mut InternalState) {
@@ -92,7 +119,7 @@ fn init_internal_state(path: &PathBuf, state: &mut InternalState) {
             add_file_impact_to_state(&entry.path(), state);
             continue
         } else if entry.path().is_dir() {
-            add_sub_dir_impact_to_state(&entry.path(), state);
+            add_sub_dir_impact_to_state(state);
             init_internal_state(&entry.path(), state);
             continue
         }
@@ -104,6 +131,6 @@ fn add_file_impact_to_state(path: &PathBuf, state: &mut InternalState) {
     state.total_size_to_process += get_metadata(path).len();
 }
 
-fn add_sub_dir_impact_to_state(path: &PathBuf, state: &mut InternalState) {
+fn add_sub_dir_impact_to_state(state: &mut InternalState) {
     state.nr_of_sub_dirs += 1;
 }

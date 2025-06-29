@@ -31,12 +31,14 @@ fn init_progress_tracker(cli: &Cli, target: &PathBuf, rx: Option<Receiver<Intern
         return None;
     }
 
-    let mut progress_tracker: ProgressTracker = ProgressTracker::init(target);
+    println!("Initializing progress tracker...");
+    let progress_tracker: ProgressTracker = ProgressTracker::init(target);
 
     let thread = thread::spawn(move || {
         progress_tracker.track_progress(rx.unwrap());
     });
 
+    println!("Completed progress tracker initialization!");
     Some(thread)
 }
 
