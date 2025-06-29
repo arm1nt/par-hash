@@ -4,6 +4,7 @@ use crate::util::constants::PAR_HASH_DEFAULT_ERROR_CODE;
 pub mod cli;
 pub mod input;
 pub mod constants;
+pub mod fs;
 
 pub fn error_exit(msg: Option<String>) -> ! {
     match msg {

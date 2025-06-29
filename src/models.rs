@@ -2,24 +2,27 @@ use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 use crate::models::HashFunctionType::{MD5, SHA1, SHA2_256, SHA2_512, SHA3_256, SHA3_512};
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct InternalState {
-    nr_of_subdirs: usize,
-    nr_of_files: usize,
-    total_size_to_process: usize, // in bytes
-    nr_of_processed_files: usize,
-    nr_of_processed_subdirs: usize,
-    processed_size: usize, // in bytes
+    pub nr_of_sub_dirs: u64,
+    pub nr_of_files: u64,
+    pub total_size_to_process: u64, // in bytes
+
+    pub nr_of_processed_sub_dirs: u64,
+    pub nr_of_processed_files: u64,
+    pub processed_size: u64, // in bytes
 }
 
 #[derive(Debug)]
 pub struct InternalStateUpdate {
-    pub test: String
-    // processed file or directory
-    // bytes processed
-    // time it took to processes this file/folder
-    // perhaps computed hash value
-    // etc.
+    pub target_type: TargetType,
+    pub processed_bytes: u64
+}
+
+#[derive(Debug, PartialEq)]
+pub enum TargetType {
+    FILE,
+    DIRECTORY,
 }
 
 pub struct HashingConfig {
