@@ -1,9 +1,10 @@
 use std::io::{Error, ErrorKind, Write};
 use std::path::PathBuf;
-use std::process;
+use std::env;
 use std::str::FromStr;
 use crate::models::HashFunctionType;
 use crate::util::cli::Cli;
+use crate::util::error_exit;
 
 fn query_cli_line(prompt: &str) -> std::io::Result<String> {
 
@@ -35,18 +36,39 @@ fn validate_hash_target(target: &PathBuf) -> std::io::Result<()> {
     if !target.exists() {
         return Err(Error::new(
             ErrorKind::NotFound,
-            format!("No file/directory found at path '{:?}'", target)
+            format!("Path '{:?}' not found", target)
         ));
     }
 
     if !target.is_dir() && !target.is_file() {
         return Err(Error::new(
             ErrorKind::InvalidInput,
-            format!("Path '{:?}' references neither a file nor a directory!", target)
+            format!("'{:?}' refers to neither a file nor a directory!", target)
         ));
     }
 
     Ok(())
+}
+
+fn get_current_working_directory() -> PathBuf {
+    match env::current_dir() {
+        Ok(cwd) => cwd,
+        Err(e) => error_exit(Some(format!("Unable to determine CWD: {e:?}")))
+    }
+}
+
+fn query_hash_target() -> PathBuf {
+    let prompt= "Enter the file or directory path: [Empty for CWD]\n> ";
+
+    let target: String = query_cli_line(prompt).unwrap_or_else(|e| {
+        error_exit(Some(format!("An error occurred while querying the target path: {e:?}")));
+    });
+
+    if target.is_empty() {
+        get_current_working_directory()
+    } else {
+        PathBuf::from(target)
+    }
 }
 
 fn validate_hash_function(algorithm: &String) -> std::io::Result<()> {
@@ -61,27 +83,29 @@ fn validate_hash_function(algorithm: &String) -> std::io::Result<()> {
     }
 }
 
+fn query_hash_function() -> String {
+    let prompt = format!("Choose one of the following supported hash functions: {}\n[Empty for MD5]\n> ", HashFunctionType::str_overview());
+
+    let response = query_cli_line(prompt.as_str()).unwrap_or_else(|e| {
+        error_exit(Some(format!("An error occurred while querying the desired hash function: {e:?}")));
+    });
+
+    if response.is_empty() {
+        String::from_str("md5").unwrap()
+    } else {
+        response
+    }
+}
+
 pub fn get_hash_target(cli: &Cli) -> PathBuf {
 
-    let target: PathBuf = if cli.input.is_some() {
-        cli.input.clone().unwrap()
-    } else {
-        let prompt= "Enter the file or directory path: [Empty for CWD]\n> ";
-
-        match query_cli_line(prompt) {
-            Ok(target_string) => PathBuf::from(target_string),
-            Err(e) => {
-                eprintln!("An error occurred while querying the file/directory path: {e:?}");
-                process::exit(1);
-            }
-        }
+    let target: PathBuf = match &cli.input {
+        Some(value) => value.clone(),
+        None => query_hash_target()
     };
 
     match validate_hash_target(&target) {
-        Err(e) => {
-            eprintln!("Invalid path provided: {e:?}");
-            process::exit(1);
-        },
+        Err(e) => error_exit(Some(format!("Invalid target path provided: {e:?}"))),
         _ => {}
     }
 
@@ -90,30 +114,15 @@ pub fn get_hash_target(cli: &Cli) -> PathBuf {
 
 pub fn get_hash_function(cli: &Cli) -> HashFunctionType {
 
-    let algorithm: String = if cli.algorithm.is_some() {
-        format!("{:?}", cli.algorithm.clone().unwrap())
-    } else {
-        let prompt = format!("Choose one of the following supported hash functions: {}\n[Empty for MD5]\n> ", HashFunctionType::str_overview());
-
-        let mut response = query_cli_line(prompt.as_str()).unwrap_or_else(|e| {
-            eprintln!("An error occurred while querying the desired hash function: {e:?}");
-            process::exit(1)
-        });
-
-        if response.is_empty() {
-            response = String::from_str("md5").unwrap();
-        }
-
-        response
+    let hashing_algorithm: String = match &cli.algorithm {
+        Some(val) => format!("{:?}", val),
+        None => query_hash_function()
     };
 
-    match validate_hash_function(&algorithm) {
-        Err(e) => {
-            eprintln!("{e:?}");
-            process::exit(1);
-        },
+    match validate_hash_function(&hashing_algorithm) {
+        Err(e) => error_exit(Some(format!("{e:?}"))),
         _ => {}
     }
 
-    HashFunctionType::from_str(algorithm.as_str()).unwrap()
+    HashFunctionType::from_str(hashing_algorithm.as_str()).unwrap()
 }
