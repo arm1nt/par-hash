@@ -24,12 +24,12 @@ pub struct Cli {
     /// File size threshold (in bytes) at which a file should be split into chunks to parallelize
     /// the computation of its hash value
     #[arg(short, long, value_name = "SPLIT THRESHOLD", required = false)]
-    pub split_size: Option<usize>,
+    pub split_size: Option<u64>,
 
     /// When a file is split into fixed size chunks, this option specifies the chunk size. If the
     /// file size is not a multiple of the chosen chunk size, the last chunk will be smaller.
     #[arg(short, long, value_name = "CHUNK SIZE")]
-    pub chunk_size: Option<usize>,
+    pub chunk_size: Option<u64>,
 
     /// Specify whether progress information should be displayed
     #[arg(short, long, required = false)]

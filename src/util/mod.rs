@@ -5,7 +5,7 @@ pub mod cli;
 pub mod input;
 pub mod constants;
 
-pub fn error_exit(msg: Option<String>) -> !{
+pub fn error_exit(msg: Option<String>) -> ! {
     match msg {
         Some(msg) => eprintln!("{}", msg),
         _ => {}
