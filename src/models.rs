@@ -16,7 +16,7 @@ pub struct InternalState {
 #[derive(Debug)]
 pub struct InternalStateUpdate {
     pub target_type: TargetType,
-    pub processed_bytes: u64
+    pub processed_bytes: Option<u64>
 }
 
 #[derive(Debug, PartialEq)]

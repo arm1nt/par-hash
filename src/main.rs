@@ -31,10 +31,10 @@ fn init_progress_tracker(cli: &Cli, target: &PathBuf, rx: Option<Receiver<Intern
         return None;
     }
 
-    let mut progress_tracker: ProgressTracker = ProgressTracker::init(target, rx?);
+    let mut progress_tracker: ProgressTracker = ProgressTracker::init(target);
 
     let thread = thread::spawn(move || {
-        progress_tracker.track_progress();
+        progress_tracker.track_progress(rx.unwrap());
     });
 
     Some(thread)
@@ -58,6 +58,7 @@ fn main() {
     let progress_tracker: Option<JoinHandle<()>> = init_progress_tracker(&cli, &hash_target, rx);
 
     let hash_computer: Arc<HashComputer> = HashComputer::new(hashing_config, hash_function, tx);
+    println!("Starting to compute hash value...\n");
     let output: Vec<u8> = hash_computer.compute_hash(hash_target);
     drop(hash_computer);
 
@@ -69,5 +70,7 @@ fn main() {
         _ => {}
     }
 
+    println!("\n--------------------------\n");
     println!("Hash value: {:?}", hex::encode(output));
+    println!("\n--------------------------\n");
 }
