@@ -32,7 +32,7 @@ impl MerkleTree {
     }
 
     pub fn initialize_from_vector(&mut self, entries: &Vec<Vec<u8>>) {
-        self.root_node = self.private_generate_from_vector(entries, 0, entries.len() - 1);
+        self.root_node = self.private_initialize_from_vector(entries, 0, entries.len() - 1);
     }
 
     fn private_initialize_from_vector(&mut self, entries: &Vec<Vec<u8>>, start: usize, end: usize) -> Option<Box<MerkleNode>> {
@@ -47,13 +47,13 @@ impl MerkleTree {
         }
 
 
-        let left_child = self.private_generate_from_vector(
+        let left_child = self.private_initialize_from_vector(
             entries,
             start,
             start + (end-start)/2
         );
 
-        let right_child = self.private_generate_from_vector(
+        let right_child = self.private_initialize_from_vector(
             entries,
             start + (end-start)/2 + 1,
             end
