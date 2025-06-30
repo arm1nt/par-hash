@@ -1,14 +1,19 @@
 use std::{fs, thread};
 use std::io::Write;
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, MutexGuard};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::Receiver;
 use std::time::Duration;
 use crate::models::{InternalState, InternalStateUpdate, TargetType};
-use crate::util::constants::{CLEAR_TERMINAL_LINE, MOVE_TO_TERMINAL_LINE_START, MOVE_UP_TERMINAL_LINE};
 use crate::util::error_exit;
 use crate::util::fs::{get_dir_entry, get_metadata, is_supported_filetype};
+use crate::util::math::ratio;
+
+const CLEAR_TERMINAL_LINE: &str = "\x1B[2K";
+const MOVE_UP_TERMINAL_LINE: &str = "\x1B[1A";
+const MOVE_TO_TERMINAL_LINE_START: &str = "\r";
+
 
 pub struct ProgressTracker {
     internal_state: Arc<Mutex<InternalState>>
@@ -67,21 +72,24 @@ fn progress_formatter(running: Arc<AtomicBool>, state: Arc<Mutex<InternalState>>
 
     while running.load(Ordering::Relaxed) {
         let curr_state = state.lock().unwrap();
-        clear_progress_lines(3);
 
-        println!("{}", get_progress_metric("Processed files", curr_state.nr_of_processed_files, curr_state.nr_of_files));
-        println!("{}", get_progress_metric("Processed subdirs", curr_state.nr_of_processed_sub_dirs, curr_state.nr_of_sub_dirs));
-        println!("{}", get_progress_metric("Processed bytes", curr_state.processed_size, curr_state.total_size_to_process));
+        print_detailed_progress(&curr_state);
 
         drop(curr_state);
         std::io::stdout().flush().unwrap();
-
         thread::sleep(Duration::from_millis(300));
     }
 
     std::io::stdout().flush().unwrap();
     thread::sleep(Duration::from_millis(300));
     clear_progress_lines(4);
+}
+
+fn print_detailed_progress(curr_state: &MutexGuard<InternalState>) {
+    clear_progress_lines(3);
+    println!("{}", get_progress_metric("Processed files", curr_state.nr_of_processed_files, curr_state.nr_of_files));
+    println!("{}", get_progress_metric("Processed subdirs", curr_state.nr_of_processed_sub_dirs, curr_state.nr_of_sub_dirs));
+    println!("{}", get_progress_metric("Processed bytes", curr_state.processed_size, curr_state.total_size_to_process));
 }
 
 fn get_progress_metric(info: &str, processed: u64, total: u64) -> String {
@@ -91,14 +99,6 @@ fn get_progress_metric(info: &str, processed: u64, total: u64) -> String {
 fn clear_progress_lines(line_count: u64) {
     for _i in 0..line_count {
         print!("{}{}{}", CLEAR_TERMINAL_LINE, MOVE_TO_TERMINAL_LINE_START, MOVE_UP_TERMINAL_LINE);
-    }
-}
-
-fn ratio(a: u64, b: u64) -> Option<f64> {
-    if b == 0 {
-        None
-    } else {
-        Some(a as f64 / b as f64)
     }
 }
 
