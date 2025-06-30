@@ -2,7 +2,7 @@ use std::cmp::min;
 use std::fs::{DirEntry, File, Metadata};
 use std::path::PathBuf;
 use std::fs;
-use std::io::{BufReader, Read, Seek, SeekFrom};
+use std::io::{BufReader, Read};
 use std::sync::Arc;
 use std::sync::mpsc::Sender;
 use crate::models::{HashFunctionType, HashingConfig, InternalStateUpdate};
@@ -12,6 +12,7 @@ use crate::merkle_tree::MerkleTree;
 use crate::models::TargetType::{DIRECTORY, FILE};
 use crate::util::error_exit;
 use crate::util::fs::{get_dir_entry, get_file, get_metadata, is_supported_filetype, read_chunk};
+use crate::util::math::{gb_to_bytes, mb_to_bytes};
 
 pub struct HashComputer {
     config: HashingConfig,
@@ -187,14 +188,4 @@ impl HashComputer {
         }
     }
 
-}
-
-
-
-fn mb_to_bytes(mb: u64) -> u64 {
-    mb * 1_000_000
-}
-
-fn gb_to_bytes(gb: u64) -> u64 {
-    gb * 1_000_000_000
 }
