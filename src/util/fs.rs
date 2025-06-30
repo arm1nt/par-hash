@@ -1,7 +1,24 @@
 use std::fs::{DirEntry, File, Metadata};
-use std::io::Error;
+use std::io::{Error, Read, Seek, SeekFrom};
 use std::path::PathBuf;
 use crate::util::error_exit;
+
+pub fn read_chunk(path: &PathBuf, start: u64, end: u64) -> Vec<u8> {
+    let mut file: File = get_file(path);
+
+    file.seek(SeekFrom::Start(start)).unwrap_or_else(|e| {
+        error_exit(Some(format!("Error seeking chunk ({start}, {end}) in file '{:?}': {e:?} ", path)));
+    });
+
+    let mut buffer: Vec<u8> = vec![0u8; (end-start) as usize];
+
+    let bytes_read = file.read(&mut buffer).unwrap_or_else(|e| {
+        error_exit(Some(format!("Unable to read chunk ({start}, {end}) from file '{:?}': {e:?}", path)));
+    });
+    buffer.truncate(bytes_read);
+
+    buffer
+}
 
 pub fn get_file(path: &PathBuf) -> File {
     File::open(path).unwrap_or_else(|e| {

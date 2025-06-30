@@ -11,7 +11,7 @@ use crate::hasher::{Hasher, HasherFactory};
 use crate::merkle_tree::MerkleTree;
 use crate::models::TargetType::{DIRECTORY, FILE};
 use crate::util::error_exit;
-use crate::util::fs::{get_dir_entry, get_file, get_metadata, is_supported_filetype};
+use crate::util::fs::{get_dir_entry, get_file, get_metadata, is_supported_filetype, read_chunk};
 
 pub struct HashComputer {
     config: HashingConfig,
@@ -189,22 +189,7 @@ impl HashComputer {
 
 }
 
-fn read_chunk(path: &PathBuf, start: u64, end: u64) -> Vec<u8> {
-    let mut file: File = get_file(path);
 
-    file.seek(SeekFrom::Start(start)).unwrap_or_else(|e| {
-        error_exit(Some(format!("Error seeking chunk ({start}, {end}) in file '{:?}': {e:?} ", path)));
-    });
-
-    let mut buffer: Vec<u8> = vec![0u8; (end-start) as usize];
-
-    let bytes_read = file.read(&mut buffer).unwrap_or_else(|e| {
-        error_exit(Some(format!("Unable to read chunk ({start}, {end}) from file '{:?}': {e:?}", path)));
-    });
-    buffer.truncate(bytes_read);
-
-    buffer
-}
 
 fn mb_to_bytes(mb: u64) -> u64 {
     mb * 1_000_000
