@@ -1,5 +1,6 @@
-use crate::hasher::{Hasher, HasherFactory};
+use crate::hasher::HasherFactory;
 use crate::models::HashFunctionType;
+use crate::util::error_exit;
 
 pub struct MerkleTree {
     algorithm: HashFunctionType,
@@ -25,7 +26,7 @@ impl MerkleTree {
 
     pub fn get_root_hash(&self) -> Vec<u8> {
         if self.root_node.is_none() {
-            panic!("Attempted to get root hash without initializing the merkle tree!");
+            error_exit(Some("Attempted to get root hash without initializing the merkle tree!".to_string()));
         }
 
         self.root_node.clone().unwrap().hash
