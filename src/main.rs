@@ -58,9 +58,9 @@ fn print_banner() {
 
 fn main() {
 
-    print_banner();
-
     let cli: Cli = parse_cli_arguments();
+
+    print_banner();
 
     let hash_target = get_hash_target(&cli);
     let hash_function: HashFunctionType = get_hash_function(&cli);
