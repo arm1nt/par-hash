@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use std::env;
 use std::str::FromStr;
 use crate::models::HashFunctionType;
-use crate::util::cli::Cli;
+use crate::input::cli::Cli;
 use crate::util::error_exit;
 
 fn query_cli_line(prompt: &str) -> std::io::Result<String> {

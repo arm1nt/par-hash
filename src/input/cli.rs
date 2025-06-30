@@ -1,7 +1,6 @@
 use std::path::PathBuf;
 use clap::{Parser, ValueEnum};
 
-
 #[derive(Parser)]
 #[command(name = "par-hash")]
 #[command(version = env!["CARGO_PKG_VERSION"])]
