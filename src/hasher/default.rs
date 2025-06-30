@@ -1,26 +1,23 @@
 use digest::Digest;
-use md5::Md5;
 use crate::hasher::Hasher;
 use crate::util::error_exit;
 
-pub struct Md5Hasher {
-    internal_hasher: Option<Md5>
+pub struct GenericHasher<D: Digest + 'static> {
+    internal_hasher: Option<D>,
 }
 
-impl Md5Hasher {
-    /// Create a new instance of this MD5 hasher implementation
+impl <D: Digest + 'static> GenericHasher<D> {
     pub fn new() -> Box<dyn Hasher> {
-        Box::new(Md5Hasher {
-            internal_hasher: Some(Md5::new())
+        Box::new(Self {
+            internal_hasher: Some(D::new())
         })
     }
 }
 
-impl Hasher for Md5Hasher {
-
+impl <D: Digest + 'static> Hasher for GenericHasher<D> {
     fn update(&mut self, buffer: &mut [u8]) {
         if let Some(ref mut hasher) = self.internal_hasher {
-            Digest::update(hasher, buffer);
+            hasher.update(buffer);
         }
     }
 
@@ -28,7 +25,6 @@ impl Hasher for Md5Hasher {
         let hasher = self.internal_hasher.take().unwrap_or_else(|| {
             error_exit(Some("Hasher already finalized".to_string()));
         });
-
         hasher.finalize().to_vec()
     }
 
@@ -36,8 +32,6 @@ impl Hasher for Md5Hasher {
         for chunk in buffer.chunks_mut(8192) {
             self.update(chunk);
         }
-
         self.finalize()
     }
-
 }
