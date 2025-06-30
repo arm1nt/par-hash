@@ -63,7 +63,7 @@ impl ProgressTracker {
 }
 
 fn progress_formatter(running: Arc<AtomicBool>, state: Arc<Mutex<InternalState>>) {
-    println!("\n");
+    println!("\n\n");
 
     while running.load(Ordering::Relaxed) {
         let curr_state = state.lock().unwrap();
@@ -72,6 +72,8 @@ fn progress_formatter(running: Arc<AtomicBool>, state: Arc<Mutex<InternalState>>
         println!("{}", get_progress_metric("Processed files", curr_state.nr_of_processed_files, curr_state.nr_of_files));
         println!("{}", get_progress_metric("Processed subdirs", curr_state.nr_of_processed_sub_dirs, curr_state.nr_of_sub_dirs));
         println!("{}", get_progress_metric("Processed bytes", curr_state.processed_size, curr_state.total_size_to_process));
+
+        drop(curr_state);
         std::io::stdout().flush().unwrap();
 
         thread::sleep(Duration::from_millis(300));
@@ -79,7 +81,7 @@ fn progress_formatter(running: Arc<AtomicBool>, state: Arc<Mutex<InternalState>>
 
     std::io::stdout().flush().unwrap();
     thread::sleep(Duration::from_millis(300));
-    clear_progress_lines(3);
+    clear_progress_lines(4);
 }
 
 fn get_progress_metric(info: &str, processed: u64, total: u64) -> String {
