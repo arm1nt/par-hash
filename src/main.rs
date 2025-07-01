@@ -18,7 +18,6 @@ mod models;
 mod merkle_tree;
 mod input;
 
-
 fn print_banner() {
     let banner = r#"
                                 __               __
@@ -32,7 +31,7 @@ fn print_banner() {
 }
 
 fn get_messaging_channel(cli: &Cli) -> (Option<Sender<InternalStateUpdate>>, Option<Receiver<InternalStateUpdate>>) {
-    if cli.progress {
+    if cli.no_progress == false {
         let (tx, rx) = mpsc::channel();
         (Some(tx), Some(rx))
     } else {
@@ -41,7 +40,7 @@ fn get_messaging_channel(cli: &Cli) -> (Option<Sender<InternalStateUpdate>>, Opt
 }
 
 fn init_progress_tracker(cli: &Cli, target: &PathBuf, rx: Option<Receiver<InternalStateUpdate>>) -> Option<JoinHandle<()>> {
-    if cli.progress == false {
+    if cli.no_progress == true {
         return None;
     }
 
