@@ -27,16 +27,12 @@ pub struct Cli {
 
     /// When a file is split into fixed size chunks, this option specifies the chunk size. If the
     /// file size is not a multiple of the chosen chunk size, the last chunk will be smaller.
-    #[arg(short, long, value_name = "CHUNK SIZE")]
+    #[arg(short, long, value_name = "CHUNK SIZE", required = false)]
     pub chunk_size: Option<u64>,
 
     /// Specify whether progress information should be displayed
-    #[arg(short, long, required = false)]
+    #[arg(short, long, required = false, default_value = "false")]
     pub progress: bool,
-
-    /// Print extra detailed information
-    #[arg(short, long, required = false)]
-    pub verbose: bool,
 }
 
 #[derive(ValueEnum, Clone, PartialEq, Debug)]

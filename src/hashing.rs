@@ -81,11 +81,14 @@ impl HashComputer {
 
     fn abstract_compute_file_hash(&self, path: PathBuf) -> Vec<u8> {
 
-        if self.config.split_threshold.is_none() {
-            return self.compute_simple_file_hash(path);
-        }
-
         let file_metadata = get_metadata(&path);
+
+        if self.config.split_threshold.is_none() {
+            let res = self.compute_simple_file_hash(path);
+
+            self.send_file_update(file_metadata.len());
+            return res;
+        }
 
         let res = if file_metadata.len() >= self.config.split_threshold.unwrap() {
             self.compute_chunked_file_hash(path)
@@ -93,11 +96,7 @@ impl HashComputer {
             self.compute_simple_file_hash(path)
         };
 
-        self.send_internal_state_update(InternalStateUpdate {
-            target_type: FILE,
-            processed_bytes: Some(file_metadata.len())
-        });
-
+        self.send_file_update(file_metadata.len());
         res
     }
 
@@ -177,6 +176,13 @@ impl HashComputer {
 
         // everything bigger than 10 GB => 256 MB chunk size
         mb_to_bytes(256) as usize
+    }
+
+    fn send_file_update(&self, size: u64) {
+        self.send_internal_state_update(InternalStateUpdate {
+            target_type: FILE,
+            processed_bytes: Some(size)
+        });
     }
 
     fn send_internal_state_update(&self, update: InternalStateUpdate) {
