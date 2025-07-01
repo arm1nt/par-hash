@@ -5,6 +5,7 @@ use std::str::FromStr;
 use crate::models::HashFunctionType;
 use crate::input::cli::Cli;
 use crate::util::error_exit;
+use crate::util::fs::is_supported_filetype;
 
 fn query_cli_line(prompt: &str) -> std::io::Result<String> {
 
@@ -40,7 +41,7 @@ fn validate_hash_target(target: &PathBuf) -> std::io::Result<()> {
         ));
     }
 
-    if !target.is_dir() && !target.is_file() {
+    if !is_supported_filetype(target) {
         return Err(Error::new(
             ErrorKind::InvalidInput,
             format!("'{:?}' refers to neither a file nor a directory!", target)
