@@ -18,6 +18,19 @@ mod models;
 mod merkle_tree;
 mod input;
 
+
+fn print_banner() {
+    let banner = r#"
+                                __               __
+        ____  ____ ______      / /_  ____ ______/ /_
+       / __ \/ __ `/ ___/_____/ __ \/ __ `/ ___/ __ \
+      / /_/ / /_/ / /  /_____/ / / / /_/ (__  ) / / /
+     / .___/\__,_/_/        /_/ /_/\__,_/____/_/ /_/
+    /_/"#.bold().magenta();
+
+    println!("{banner}\n");
+}
+
 fn get_messaging_channel(cli: &Cli) -> (Option<Sender<InternalStateUpdate>>, Option<Receiver<InternalStateUpdate>>) {
     if cli.progress {
         let (tx, rx) = mpsc::channel();
@@ -42,19 +55,6 @@ fn init_progress_tracker(cli: &Cli, target: &PathBuf, rx: Option<Receiver<Intern
     println!("> Completed progress tracker initialization!");
     Some(thread)
 }
-
-fn print_banner() {
-    let banner = r#"
-                                __               __
-        ____  ____ ______      / /_  ____ ______/ /_
-       / __ \/ __ `/ ___/_____/ __ \/ __ `/ ___/ __ \
-      / /_/ / /_/ / /  /_____/ / / / /_/ (__  ) / / /
-     / .___/\__,_/_/        /_/ /_/\__,_/____/_/ /_/
-    /_/"#.bold().magenta();
-
-    println!("{banner}\n");
-}
-
 
 fn main() {
 
