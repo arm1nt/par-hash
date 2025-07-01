@@ -30,7 +30,7 @@ pub struct Cli {
     #[arg(short, long, value_name = "CHUNK SIZE", required = false)]
     pub chunk_size: Option<u64>,
 
-    /// When specified, detailed progress information is displayed
+    /// When specified, no progress information is displayed
     #[arg(short, long, required = false, default_value = "false")]
     pub no_progress: bool,
 }
